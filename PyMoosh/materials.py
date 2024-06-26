@@ -20,62 +20,53 @@ class Material:
             - ExpData                / string                  / 'ExpData'
             - RefractiveIndexInfo    / list(shelf, book, page) / 'RII'
             - Anisotropic            / list(shelf, book, page) / 'ANI'
+            - NonLocalMaterial       / list(complex, float)    / 'NL'
+            - NonLocalCustomFunction / string                  / 'NL'
     """
 
     def __init__(self, mat, specialType="Default", verbose=False):
+        self.beta = 0
 
-        if specialType == "Default":
+        if specialType == "Default" :
             self.specialType = specialType
-            if mat.__class__.__name__ == 'function':
+            if mat.__class__.__name__ == 'function' :
                 self.type = "CustomFunction"
                 self.permittivity_function = mat
-                self.name = "CustomFunction: "+mat.__name__
+                self.name = "CustomFunction: " + mat.__name__
                 if verbose :
-                    print("Custom dispersive material. Epsilon=",mat.__name__,"(wavelength in nm)")
-            elif not hasattr(mat, '__iter__'):
+                    print("Custom dispersive material. Epsilon=", mat.__name__, "(wavelength in nm)")
+            elif not hasattr(mat, '__iter__') :
             # no func / not iterable --> single value, convert to complex by default
                 self.type = "simple_perm"
-                self.name = "SimplePermittivity:"+str(mat)
+                self.name = "SimplePermittivity:" + str(mat)
                 self.permittivity = complex(mat)
                 if verbose :
-                    print("Simple, non dispersive: epsilon=",self.permittivity)
+                    print("Simple, non dispersive: epsilon=", self.permittivity)
             # elif isinstance(mat,list) or isinstance(mat,tuple) or isinstance(mat,np.ndarray):
-            elif isinstance(mat, list) and isinstance(mat[0], float) and isinstance(mat[1], float): # magnetic == [float, float]
+            elif isinstance(mat, list) and isinstance(mat[0], float) and isinstance(mat[1], float) : # magnetic == [float, float]
             # iterable: if list or similar --> magnetic
                 self.type = "magnetic"
                 self.permittivity = mat[0]
                 self.permeability = mat[1]
-                self.name = "MagneticPermittivity:"+str(mat[0])+"Permability:"+str(mat[1])
+                self.name = "MagneticPermittivity:" + str(mat[0]) + "Permability:" + str(mat[1])
                 print("hello")
                 if verbose :
-                    print("Magnetic, non dispersive: epsilon=", mat[0]," mu=",mat[1])
+                    print("Magnetic, non dispersive: epsilon=", mat[0], " mu=", mat[1])
                 if len(mat)>2:
                     print(f'Warning: Magnetic material should have 2 values (epsilon / mu), but {len(mat)} were given.')
 
-            elif isinstance(mat,str):
+            elif isinstance(mat,str) :
             # iterable: string --> database material
             # from file in shipped database
                 import pkgutil
                 f = pkgutil.get_data(__name__, "data/material_data.json")
-                f_str = f.decode(encoding='utf8')
+                f_str = f.decode(encoding = 'utf8')
                 database = json.loads(f_str)
-                if mat in database:
+                if mat in database :
                     material_data = database[mat]
                     model = material_data["model"]
-                    """
-                    if model == "ExpData":
-                        self.type = "ExpData"
-                        self.name = "ExpData: "+ str(mat)
 
-                        wl=np.array(material_data["wavelength_list"])
-                        epsilon = np.array(material_data["permittivities"])
-                        if "permittivities_imag" in material_data:
-                            epsilon = epsilon + 1j*np.array(material_data["permittivities_imag"])
-
-                        self.wavelength_list = np.array(wl, dtype=float)
-                        self.permittivities  = np.array(epsilon, dtype=complex)
-                    """
-                    if model == "BrendelBormann":
+                    if model == "BrendelBormann" :
                         self.type = "BrendelBormann"
                         self.name = "BrendelBormann model: " + str(mat)
                         self.f0 = material_data["f0"]
@@ -86,18 +77,18 @@ class Material:
                         self.omega = np.array(material_data["omega"])
                         self.sigma = np.array(material_data["sigma"])
 
-                    elif model == "CustomFunction":
+                    elif model == "CustomFunction" :
                         self.type = "CustomDatabaseFunction"
-                        self.name = "CustomDatabaseFunction: " + str(mat)
+                        self.name = "CustomDatabaseFunction : " + str(mat)
                         permittivity = material_data["function"]
                         self.permittivity_function = authorized[permittivity]
 
                     else:
-                        print(model," not an existing model (yet).")
+                        print(model, " not an existing model (yet).")
                         #sys.exit()
 
                     if verbose :
-                        print("Database material:",self.name)
+                        print("Database material:", self.name)
                 else:
                     print(mat,"Unknown material (for the moment)")
                     #print("Known materials:\n", existing_materials())
@@ -107,8 +98,8 @@ class Material:
                 print(f'Warning: Given data is not in the right format for a \'Default\' specialType. You should check the data format or specify a specialType. You can refer to the following table:')
                 print(self.__doc__)
 
-        elif specialType == "RII":
-            if len(mat) != 3:
+        elif specialType == "RII" :
+            if len(mat) != 3 :
                 print(f'Warning: Material RefractiveIndex Database is expected to be a list of 3 values, but {len(mat)} were given.')
             self.type = "RefractiveIndexInfo"
             self.specialType = specialType
@@ -120,34 +111,34 @@ class Material:
             if verbose :
                 print("Hello there ;)")
                 print("Material from Refractiveindex Database")
-            if len(mat) != 3:
+            if len(mat) != 3 :
                 print(f'Warning: Material from RefractiveIndex Database should have 3 values (shelf, book, page), but {len(mat)} were given.')
 
-        elif specialType == "ExpData":
+        elif specialType == "ExpData" :
             import pkgutil
             f = pkgutil.get_data(__name__, "data/material_data.json")
             f_str = f.decode(encoding='utf8')
             database = json.loads(f_str)
-            if mat in database:
+            if mat in database :
                 material_data = database[mat]
                 model = material_data["model"]
                 if model == "ExpData":
                     self.type = "ExpData"
-                    self.name = "ExpData: "+ str(mat)
+                    self.name = "ExpData: " + str(mat)
                     self.specialType = specialType
 
-                    wl=np.array(material_data["wavelength_list"])
+                    wl = np.array(material_data["wavelength_list"])
                     epsilon = np.array(material_data["permittivities"])
                     if "permittivities_imag" in material_data:
-                        epsilon = epsilon + 1j*np.array(material_data["permittivities_imag"])
+                        epsilon = epsilon + 1j * np.array(material_data["permittivities_imag"])
 
                     self.wavelength_list = np.array(wl, dtype=float)
                     self.permittivities  = np.array(epsilon, dtype=complex)
-                else:
+                else :
                     print('Warning: Used model should be "ExpData", but {} were given.'.format(model))
 
         elif specialType == "ANI" :
-            if len(mat) != 3:
+            if len(mat) != 3 :
                 print(f'Warning: Anisotropic material from Refractiveindex.info is expected to be a list of 3 values, but {len(mat)} were given.')
             self.type = "Anisotropic"
             self.specialType = specialType
@@ -161,16 +152,41 @@ class Material:
             self.name = "Anisotropic material from Refractiveindex.info: " + str(mat)
             if verbose :
                 print("Material from Refractiveindex Database")
-            if len(mat) != 3:
+            if len(mat) != 3 :
                 print(f'Warning: Material from RefractiveIndex Database should have 3 values (shelf, book, page), but {len(mat)} were given.')
 
-        elif specialType == "Unspecified":
+        elif specialType == "NL" :
+            if  mat.__class__.__name__ == "function" :
+                self.type = "NonLocalCustomFunction"
+                self.name = "NonLocalCustomFunction : " + mat.__name__
+                self.mat = mat
+                self.beta = mat(500)[3]
+                if verbose :
+                    print("Custom dispersive material. Epsilon = ", mat.__name__, "(wavelength in nm)")
+
+            elif len(mat) == 4 or len(mat) == 5 :
+                self.type = "NonLocalMaterial"
+                self.mat = mat
+                self.beta = self.mat[3]
+                self.w_p = self.mat[2]
+                self.chi_b = self.mat[0]
+                self.chi_f = self.mat[1]
+                if len(mat) == 4 :
+                    self.permeability = 1.0
+                else :
+                    self.permeability = mat[4]
+                self.name = f"NonLocalMaterial {mat.__class__.__name__}"
+                if verbose :
+                    print("NonLocalMaterial : [chi_b = {self.chi_b}, chi_f = {self.chi_f}, w_p = {self.w_p}, beta = {self.beta}, mu = {self.permeability}]")
+
+
+        elif specialType == "Unspecified" :
             self.specialType = specialType
             print(specialType, "Unknown type of material (for the moment)")
             # sys.exit()
 
-        else:
-            print(f'Warning: Unknown type : {specialType}')
+        else :
+            print(f'Warning : Unknown type : {specialType}')
 
     def __str__(self):
         return self.name
@@ -195,28 +211,28 @@ class Material:
             chi_f = -self.omega_p ** 2 * self.f0 / (w * (w + 1j * self.Gamma0))
             epsilon = 1 + chi_f + chi_b
             return epsilon
-        elif self.type == "RefractiveIndexInfo":
-            try:
+        elif self.type == "RefractiveIndexInfo" :
+            try :
                 k = self.material.get_extinction_coefficient(wavelength)
                 return self.material.get_epsilon(wavelength)
-            except:
+            except :
                 n = self.material.get_refractive_index(wavelength)
                 return n**2
-        elif self.type == "ExpData":
+        elif self.type == "ExpData" :
             return np.interp(wavelength, self.wavelength_list, self.permittivities)
-        elif self.type == "Anisotropic":
+        elif self.type == "Anisotropic" :
             print(f'Warning: Functions for anisotropic materials generaly requires more information than isotropic ones. You probably want to use \'get_permittivity_ani()\' function.')
 
-    def get_permeability(self,wavelength, verbose=False):
-        if self.type == "magnetic":
+    def get_permeability(self,wavelength, verbose=False) :
+        if self.type == "magnetic" :
             return self.permeability
-        elif self.type == "RefractiveIndexInfo":
+        elif self.type == "RefractiveIndexInfo" :
             if verbose:
-                print('Warning: Magnetic parameters from RefractiveIndex Database are not implemented. Default permeability is set to 1.0 .')
+                print('Warning: Magnetic parameters from RefractiveIndex Database are not implemented. Default permeability is set to 1.0.')
             return np.ones(wavelength.size)
-        elif self.type == "Anisotropic":
+        elif self.type == "Anisotropic" :
             if verbose:
-                print('Warning: Magnetic parameters from RefractiveIndex Database are not implemented. Default permeability is set to 1.0 .')
+                print('Warning: Magnetic parameters from RefractiveIndex Database are not implemented. Default permeability is set to 1.0.')
             return [1.0, 1.0, 1.0] # We should extend it to an array
         return 1.0
 
